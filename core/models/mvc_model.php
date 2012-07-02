@@ -3,6 +3,7 @@
 class MvcModel {
 
 	public $name = null;
+	public $table_prefix = null;
 	public $table = null;
 	public $primary_key = 'id';
 	public $belongs_to = null;
@@ -26,7 +27,7 @@ class MvcModel {
 		
 		$this->check_for_obsolete_functionality();
 		
-		$table = empty($this->table) ? $wpdb->prefix.MvcInflector::tableize($this->name) : $this->process_table_name($this->table);
+		$table = empty($this->table) ? $wpdb->prefix.$this->table_prefix.MvcInflector::tableize($this->name) : $this->process_table_name($this->table);
 		
 		$defaults = array(
 			'model_name' => $this->name,
@@ -93,6 +94,16 @@ class MvcModel {
 				return false;
 			}
 		}
+		
+		//auto-populate created/modified
+		if($this->has_fields('created')){
+			$model_data['created'] = date('Y-m-d h:i:s');
+		}
+		
+		if($this->has_fields('modified')){
+			$model_data['modified'] = date('Y-m-d h:i:s');
+		}
+		
 		$id = $this->insert($model_data);
 		$this->update_associations($id, $model_data);
 		if (method_exists($this, 'after_create') || method_exists($this, 'after_save')) {
@@ -112,22 +123,31 @@ class MvcModel {
 		if (empty($data[$this->name])) {
 			$data = array($this->name => $data);
 		}
+		
+		$model_data = $data[$this->name];
+		$id = $model_data[$this->primary_key];
+		unset($model_data[$this->primary_key]);
+		$valid = $this->validate_data($model_data);
+		if ($valid !== true) {
+			$this->validation_error = $valid;
+			$this->validation_error_html = $this->validation_error->get_html();
+			$this->invalid_data = $model_data;
+			return false;
+		}
+		
 		if (!empty($data[$this->name][$this->primary_key])) {
-			$model_data = $data[$this->name];
-			$id = $model_data[$this->primary_key];
-			unset($model_data[$this->primary_key]);
-			$valid = $this->validate_data($model_data);
-			if ($valid !== true) {
-				$this->validation_error = $valid;
-				$this->validation_error_html = $this->validation_error->get_html();
-				$this->invalid_data = $model_data;
-				return false;
-			}
+			
 			if (method_exists($this, 'before_save')) {
 				if (!$this->before_save($model_data)) {
 					return false;
 				}
 			}
+			
+			//auto-populate modified
+			if($this->has_fields('modified')){
+				$model_data['modified'] = date('Y-m-d h:i:s');
+			}
+			
 			$this->update($id, $model_data);
 			$this->update_associations($id, $model_data);
 		} else {
@@ -489,7 +509,7 @@ class MvcModel {
 				$object = $this->new_object($array);
 			}
 			
-			if (!empty($this->primary_key)) {
+			if (!empty($this->primary_key) && isset($object->{$this->primary_key})) {
 				$object->__id = $object->{$this->primary_key};
 			}
 			
@@ -569,7 +589,14 @@ class MvcModel {
 	
 	protected function process_table_name($table_name) {
 		global $wpdb;
-		$table_name = str_replace('{prefix}', $wpdb->prefix, $table_name);
+		
+		$prefix = $wpdb->prefix;
+		
+		if($this->table_prefix){
+			$prefix .= $this->table_prefix;
+		}
+		
+		$table_name = str_replace('{prefix}', $prefix, $table_name);
 		return $table_name;
 	}
 	
@@ -754,6 +781,26 @@ class MvcModel {
 		MvcError::fatal('Undefined method: '.$class.'::'.$method.'.');
 	}
 
+	public function has_fields($name) {
+		if (is_array($name)) {
+			foreach ($name as $n) {
+				if ($this->has_fields($n)) {
+					return $n;
+				}
+			}
+			return false;
+		}
+
+		if (empty($this->schema)) {
+			$this->init_schema();
+		}
+
+		if ($this->schema != null) {
+			return isset($this->schema[$name]);
+		}
+		
+		return false;
+	}
 }
 
 ?>
