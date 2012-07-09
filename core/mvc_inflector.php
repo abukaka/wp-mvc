@@ -166,6 +166,13 @@ class MvcInflector {
 		return $string;
 	}
 	
+	public static function trim($string) {
+		$string = preg_replace('/[A-Z]/', ' $0', $string);
+		$string = trim(strtolower($string));
+		$string = str_replace(' ', '', $string);
+		return $string;
+	}
+	
 	public static function pluralize($string) {
 	
 		if (isset(self::$_cache['pluralize'][$string])) {
