@@ -105,8 +105,8 @@ class MvcController {
 		
 			$this->{$helper_method_name} = new $helper_name();
 		
-			if ($helper_name == 'FormHelper') {
-				$this->{$helper_method_name}->controller = false;
+			if ($helper_name == 'FormHelper') {				
+				$this->{$helper_method_name}->controller = new stdClass();
 				$this->{$helper_method_name}->controller->action = $this->action;
 				$this->{$helper_method_name}->controller->name = $this->name;
 			}
@@ -117,6 +117,16 @@ class MvcController {
 		$model_underscore = MvcInflector::underscore($model_name);
 		
 		$this->file_includer->require_first_app_file_or_core_file('models/'.$model_underscore.'.php');
+		
+		if (class_exists($model_name)) {
+			$this->{$model_name} = new $model_name();
+		}
+	}
+	
+	protected function load_wp_model($model_name) {
+		$model_underscore = MvcInflector::underscore($model_name);
+		
+		$this->file_includer->require_first_app_file_or_core_file('models/wp_models/'.$model_underscore.'.php');
 		
 		if (class_exists($model_name)) {
 			$this->{$model_name} = new $model_name();
