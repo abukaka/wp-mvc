@@ -20,7 +20,6 @@ class MvcModel {
 	private $wp_post_adapter = null;
 	
 	function __construct() {
-		
 		global $wpdb;
 		
 		$this->name = preg_replace('/Model$/', '', get_class($this));
@@ -281,7 +280,8 @@ class MvcModel {
 		$response = array(
 			'objects' => $objects,
 			'total_pages' => ceil($total_count/$options['per_page']),
-			'page' => $options['page']
+			'page' => $options['page'],
+			'total_count' => $total_count
 		);
 		return $response;
 	}
@@ -369,7 +369,7 @@ class MvcModel {
 					if (!empty($this->associations[$join_model_name])) {
 						$association = $this->associations[$join_model_name];
 						
-						$join_model = new $join_model_name();
+						$join_model = MvcModelRegistry::get_model($this->associations[$join_model_name]['class']);
 						
 						switch ($association['type']) {
 							case 'belongs_to':
@@ -383,7 +383,7 @@ class MvcModel {
 							case 'has_many':
 								// To do: test this
 								$join = array(
-									'table' => $this->table,
+									'table' => $join_model->table,
 									'on' => $join_model_name.'.'.$association['foreign_key'].' = '.$this->name.'.'.$this->primary_key,
 									'alias' => $join_model_name
 								);
@@ -534,7 +534,7 @@ class MvcModel {
 					if (empty($association['fields'])) {
 						$association['fields'] = array($association['name'].'.*');
 					}
-					$model = MvcModelRegistry::get_model($model_name);
+					$model = MvcModelRegistry::get_model($this->associations[$model_name]['class']);
 					switch ($association['type']) {
 						case 'belongs_to':
 							$associated_object = $model->find_by_id($object->{$association['foreign_key']}, array(
