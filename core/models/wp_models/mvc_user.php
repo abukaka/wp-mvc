@@ -14,6 +14,10 @@ class MvcUser extends MvcModel {
 		'Post' => array(
 			'class' => 'MvcPost',
 			'foreign_key' => 'post_author'
+		),
+		'Meta' => array(
+			'class' => 'MvcUserMeta',
+			'foreign_key' => 'user_id'
 		)
 	);
 	
