@@ -62,6 +62,7 @@ abstract class MvcLoader {
 			'models/wp_models/mvc_post',
 			'models/wp_models/mvc_post_meta',
 			'models/wp_models/mvc_user',
+			'models/wp_models/mvc_user_meta',
 			'helpers/mvc_helper',
 			'helpers/mvc_form_tags_helper',
 			'helpers/mvc_form_helper',
@@ -205,11 +206,14 @@ abstract class MvcLoader {
 		foreach ($this->plugin_app_paths as $plugin_app_path) {
 		
 			$model_filenames = $this->file_includer->require_php_files_in_directory($plugin_app_path.'models/');
-			
 			foreach ($model_filenames as $filename) {
 				$models[] = MvcInflector::class_name_from_filename($filename);
 			}
-		
+			
+			$wp_model_filenames = $this->file_includer->require_php_files_in_directory(MVC_CORE_PATH. '/models/wp_models/');
+			foreach ($wp_model_filenames as $filename) {
+				$models[] = MvcInflector::class_name_from_filename($filename);
+			}
 		}
 		
 		$this->model_names = array();
@@ -220,7 +224,6 @@ abstract class MvcLoader {
 			$model_instance = new $model_class();
 			MvcModelRegistry::add_model($model, $model_instance);
 		}
-		
 	}
 	
 	protected function load_settings() {
